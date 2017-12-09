@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <title>D3 Sandbox</title>
   <style>
+  .states { cursor: pointer; }
+  .states :hover { fill: gray; }
 
-  .states :hover {
-    fill: red;
-  }
+  .activeState { fill: gray; }
 
   .state-borders {
     fill: none;
@@ -25,9 +25,29 @@
     -webkit-transform: translate(-50%,-50%);
     transform: translate(-50%,-50%);
   }
+
+  #infoPopup {
+    position: absolute;
+    display: none;
+    min-width: 25px;
+    max-width: 100px;
+    background-color: white;
+    color: black;
+    border: 1px solid gray;
+    padding: 15px;
+    font-family: "Helvetica", "Open Sans", "Arial", sans-serif;
+    font-size: .80em;
+    pointer-events: none;
+  }
+
+  #infoPopup.show {
+    display: block;
+  }
+
   </style>
   <script src="https://d3js.org/d3.v4.min.js"></script>
   <script src="https://d3js.org/topojson.v2.min.js"></script>
+  <!-- <script src="stateInfo.json"></script> -->
 </head>
 <body>
   <div id="svg-container">
@@ -39,19 +59,124 @@
 
   var path = d3.geoPath();
 
+  var stateInfo = {
+  01: { "abbr": "AL", "name": "Alabama", "ns": 01779775 },
+  02: { "abbr": "AK", "name": "Alaska", "ns": 01785533 },
+  04: { "abbr": "AZ", "name": "Arizona", "ns": 01779777 },
+  05: { "abbr": "AR", "name": "Arkansas", "ns": 00068085 },
+  06: { "abbr": "CA", "name": "California", "ns": 01779778 },
+  08: { "abbr": "CO", "name": "Colorado", "ns": 01779779 },
+  09: { "abbr": "CT", "name": "Connecticut", "ns": 01779780 },
+  10: { "abbr": "DE", "name": "Delaware", "ns": 01779781 },
+  11: { "abbr": "DC", "name": "District of Columbia", "ns": 01702382 },
+  12: { "abbr": "FL", "name": "Florida", "ns": 00294478 },
+  13: { "abbr": "GA", "name": "Georgia", "ns": 01705317 },
+  15: { "abbr": "HI", "name": "Hawaii", "ns": 01779782 },
+  16: { "abbr": "ID", "name": "Idaho", "ns": 01779783 },
+  17: { "abbr": "IL", "name": "Illinois", "ns": 01779784 },
+  18: { "abbr": "IN", "name": "Indiana", "ns": 00448508 },
+  19: { "abbr": "IA", "name": "Iowa", "ns": 01779785 },
+  20: { "abbr": "KS", "name": "Kansas", "ns": 00481813 },
+  21: { "abbr": "KY", "name": "Kentucky", "ns": 01779786 },
+  22: { "abbr": "LA", "name": "Louisiana", "ns": 01629543 },
+  23: { "abbr": "ME", "name": "Maine", "ns": 01779787 },
+  24: { "abbr": "MD", "name": "Maryland", "ns": 01714934 },
+  25: { "abbr": "MA", "name": "Massachusetts", "ns": 00606926 },
+  26: { "abbr": "MI", "name": "Michigan", "ns": 01779789 },
+  27: { "abbr": "MN", "name": "Minnesota", "ns": 00662849 },
+  28: { "abbr": "MS", "name": "Mississippi", "ns": 01779790 },
+  29: { "abbr": "MO", "name": "Missouri", "ns": 01779791 },
+  30: { "abbr": "MT", "name": "Montana", "ns": 00767982 },
+  31: { "abbr": "NE", "name": "Nebraska", "ns": 01779792 },
+  32: { "abbr": "NV", "name": "Nevada", "ns": 01779793 },
+  33: { "abbr": "NH", "name": "New Hampshire", "ns": 01779794 },
+  34: { "abbr": "NJ", "name": "New Jersey", "ns": 01779795 },
+  35: { "abbr": "NM", "name": "New Mexico", "ns": 00897535 },
+  36: { "abbr": "NY", "name": "New York", "ns": 01779796 },
+  37: { "abbr": "NC", "name": "North Carolina", "ns": 01027616 },
+  38: { "abbr": "ND", "name": "North Dakota", "ns": 01779797 },
+  39: { "abbr": "OH", "name": "Ohio", "ns": 01085497 },
+  40: { "abbr": "OK", "name": "Oklahoma", "ns": 01102857 },
+  41: { "abbr": "OR", "name": "Oregon", "ns": 01155107 },
+  42: { "abbr": "PA", "name": "Pennsylvania", "ns": 01779798 },
+  44: { "abbr": "RI", "name": "Rhode Island", "ns": 01219835 },
+  45: { "abbr": "SC", "name": "South Carolina", "ns": 01779799 },
+  46: { "abbr": "SD", "name": "South Dakota", "ns": 01785534 },
+  47: { "abbr": "TN", "name": "Tennessee", "ns": 01325873 },
+  48: { "abbr": "TX", "name": "Texas", "ns": 01779801 },
+  49: { "abbr": "UT", "name": "Utah", "ns": 01455989 },
+  50: { "abbr": "VT", "name": "Vermont", "ns": 01779802 },
+  51: { "abbr": "VA", "name": "Virginia", "ns": 01779803 },
+  53: { "abbr": "WA", "name": "Washington", "ns": 01779804 },
+  54: { "abbr": "WV", "name": "West Virginia", "ns": 01779805 },
+  55: { "abbr": "WI", "name": "Wisconsin", "ns": 01779806 },
+  56: { "abbr": "WY", "name": "Wyoming", "ns": 01779807 },
+  60: { "abbr": "AS", "name": "American Samoa", "ns": 01802701 },
+  66: { "abbr": "GU", "name": "Guam", "ns": 01802705 },
+  69: { "abbr": "MP", "name": "Northern Mariana Islands", "ns": 01779809 },
+  72: { "abbr": "PR", "name": "Puerto Rico", "ns": 01779808 },
+  74: { "abbr": "UM", "name": "U.S. Minor Outlying Islands", "ns": 01878752 },
+  78: { "abbr": "VI", "name": "U.S. Virgin Islands", "ns": 01802710 }
+  }
+
+  function locationClick(d) {
+    d3.selectAll('.states').attr('class', 'states');
+    d3.select(this).attr('class', 'states activeState');
+    console.log(d);
+    console.log(stateInfo[parseInt(d.id)].abbr);
+    // if (stateInfo[parseInt(d.id)]) window.href = 'https://www.antievictionmap.com/';
+  }
+
+  function locationHover(d) {
+    closePopup(d);
+    var dInfo = stateInfo[parseInt(d.id)];
+    if (dInfo) openPopup(dInfo);
+  }
+
+  function closePopup(d) {
+    d3.select('#infoPopup').classed('show', false);
+    d3.select('#stateName').text('');
+  }
+
+  function openPopup(dInfo) {
+    d3.select('#stateName')
+      .text(dInfo.name);
+    d3.select('#infoPopup')
+      .classed('show', true);
+    movePopup(dInfo);
+  }
+
+  function movePopup(dInfo) {
+    var mouseCoords = d3.mouse(svg.node());
+    d3.select('#infoPopup')
+      .style("left", (mouseCoords[0] + 10) + "px")
+      .style("top", (mouseCoords[1] + 10) + "px");
+  }
+
   d3.json("https://d3js.org/us-10m.v1.json", function(error, us) {
     if (error) throw error;
 
     svg.append("g")
-        .attr("class", "states")
+      .attr("class", "states")
       .selectAll("path")
       .data(topojson.feature(us, us.objects.states).features)
       .enter().append("path")
-        .attr("d", path);
+        .attr("d", path)
+        .on("mouseover", locationHover)
+        .on("mousemove", movePopup)
+        .on("mouseout", closePopup)
+        .on("click", locationClick);
 
     svg.append("path")
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; })));
+
+    d3.select('#svg-container')
+    .append('div')
+      .attr('id', 'infoPopup')
+    .append('span')
+      .attr('id', 'stateName');
+
   });
   </script>
 </body>
